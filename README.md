@@ -1,5 +1,5 @@
 # easyStatus
-Fivem food water management, works seamlessly with esx 
+Fivem food water management, works with ESX, ND_Core, and ox_core
 
 
 ```use exports['easyStatus']:statusUpdate(foodDelta, waterDelta) where the two values are amount to change```
