@@ -7,8 +7,7 @@ use_experimental_fxv2_oal 'yes'
 shared_script { 'config.lua'}
 
 client_scripts {
-    'client.lua',
-	'bridge/brrrridge.lua'
+    'client.lua', 'bridge/brrrridge.lua'
 }
 
 server_scripts {
