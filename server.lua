@@ -65,12 +65,8 @@ AddEventHandler("ModifyNeeds", function( foodDelta, waterDelta)
 end)
 
 local function foodWaterLoop()
-    repeat
-        Wait(1000)
-    until playerLoaded == true
-    
-    while playerLoaded do
-        Wait(Config.TickRate * 1000)
+    while true do
+        Wait(Config.TickRate * 60000)
         updateFoodWater()
     end
 end
