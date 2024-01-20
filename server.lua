@@ -41,6 +41,7 @@ end)
 
 function updateFoodWater()
     local players = GetPlayers()
+    if playerLoaded == nil then return end
     for i=1, #players do
         local playerId = players[i]
         local plyState = Player(playerId).state
@@ -64,6 +65,8 @@ AddEventHandler("ModifyNeeds", function( foodDelta, waterDelta)
  
 end)
 
+
+
 local function foodWaterLoop()
     while true do
         Wait(Config.TickRate * 60000)
@@ -72,7 +75,6 @@ local function foodWaterLoop()
 end
 
 foodWaterLoop()
-
 
 
 
