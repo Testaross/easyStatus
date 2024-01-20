@@ -18,8 +18,11 @@ function HandleResourceStart()
         AddEventHandler('ox:playerLoaded', function(source, userid, charid) 
             playerLoaded = true
         end)
+    elseif resourceName == "qb-core" then
+        return
     else
-        print('noqbcore')
+        print('add custom core')
+        --add player loaded event
     end
 end
 
