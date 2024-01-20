@@ -6,3 +6,4 @@ Fivem food water management, works seamlessly with esx
 
 ```amount is saved in statebags under state.food and state.water respecively```
        
+```uses all standard esx_status events as well```
