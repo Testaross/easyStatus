@@ -32,9 +32,7 @@ AddEventHandler("onResourceStart", function(resourceName)
     HandleResourceStart()
 end)
 
-
-RegisterServerEvent('statusLoad')
-AddEventHandler("statusLoad", function()
+RegisterServerEvent('statusLoad', function()
     Player(source).state.food = 100
     Player(source).state.water = 100
 end)
@@ -55,8 +53,7 @@ function updateFoodWater()
     end
 end
 
-RegisterServerEvent('ModifyNeeds')
-AddEventHandler("ModifyNeeds", function( foodDelta, waterDelta)
+RegisterServerEvent('ModifyNeeds', function( foodDelta, waterDelta)
     local food = Player(source).state.food
     local water = Player(source).state.water
     local plyState = Player(source).state
@@ -65,15 +62,12 @@ AddEventHandler("ModifyNeeds", function( foodDelta, waterDelta)
  
 end)
 
-
-
 local function foodWaterLoop()
     while true do
         Wait(Config.TickRate * 60000)
         updateFoodWater()
     end
 end
-
 foodWaterLoop()
 
 
