@@ -1,27 +1,92 @@
+
+local debugMode = true -- Set to false to disable debugging
+
+-- Debug function
+local function debugPrint(...)
+    if debugMode then
+        local args = {...}
+        for _, arg in ipairs(args) do
+            print(json.encode(arg, {indent = true})) -- Adjust indent as needed
+        end
+    end
+end
+
 local players = {}
 local playerLoaded = false
 
+local PlayerState = {}
+PlayerState.__index = PlayerState
 
-function HandleResourceStart()
-    if  GetResourceState('ND_Core') == 'started' then
-        print("ND_Core bridge loaded, thanks for downloading")
+function PlayerState.new(playerId)
+    if players[playerId] then
+        return players[playerId]
+    end
+
+    local self = setmetatable({}, PlayerState)
+    self.id = playerId
+    self.state = {
+        food = 100,
+        water = 100
+    }
+    players[playerId] = self 
+    debugPrint({action = "New PlayerState Created", playerId = playerId, state = self.state})
+    return self
+end
+
+function PlayerState:updateFoodWater()
+    self.state.food = math.max(0, math.min(100, self.state.food - Config.FoodDecreaseAmount))
+    self.state.water = math.max(0, math.min(100, self.state.water - Config.WaterDecreaseAmount))
+    debugPrint({
+        action = "Update Food & Water", 
+        playerId = self.id, 
+        oldState = oldState, 
+        newState = self.state
+    })
+    if self.state.food == 0 or self.state.water == 0 then
+        TriggerClientEvent('HealthTick', self.id)
+        debugPrint({action = "Trigger HealthTick Event", playerId = self.id})
+    end
+end
+
+function PlayerState:modifyNeeds(foodDelta, waterDelta)
+    self.state.food = math.max(0, math.min(100, self.state.food + foodDelta))
+    self.state.water = math.max(0, math.min(100, self.state.water + waterDelta))
+    debugPrint({
+        action = "Modify Needs", 
+        playerId = self.id, 
+        foodDelta = foodDelta, 
+        waterDelta = waterDelta, 
+        oldState = oldState, 
+        newState = self.state
+    })
+end
+
+
+local function handleResourceStart(resourceName)
+    debugPrint({action = "Handling Resource Start", resourceName = resourceName})
+
+    if GetResourceState('ND_Core') == 'started' then
+        debugPrint({message = "ND_Core bridge loaded, thanks for downloading"})
+        playerLoaded = true
         AddEventHandler("ND:characterLoaded", function(character)
-            playerLoaded = true
+            debugPrint({message = "ND_Core character loaded", playerLoaded = playerLoaded})
         end)
-    elseif GetResourceState('es_extended') == 'started'then
-        RegisterNetEvent('esx:playerLoaded')
+    elseif GetResourceState('es_extended') == 'started' then
+        debugPrint({message = "es_extended bridge loaded, thanks for downloading"})
+        playerLoaded = true
         AddEventHandler('esx:playerLoaded', function()
-            playerLoaded = true
+            debugPrint({message = "esx player loaded", playerLoaded = playerLoaded})
         end)
-        print("ox_core bridge loaded, thanks for downloading")
     elseif resourceName == "ox_core" then
+        debugPrint({message = "ox_core detected"})
+        playerLoaded = true
         AddEventHandler('ox:playerLoaded', function(source, userid, charid) 
-            playerLoaded = true
+            debugPrint({message = "ox_core player loaded", playerLoaded = playerLoaded})
         end)
     elseif resourceName == "qb-core" then
-        return
+        debugPrint({message = "qb-core detected, no action taken"})
     else
-        print('add custom core')
+        debugPrint({message = 'Custom core detected, add player loaded event'})
         --add player loaded event
     end
 end
@@ -29,47 +94,35 @@ end
 AddEventHandler("onResourceStart", function(resourceName)
     if (GetCurrentResourceName() ~= resourceName) then return end
     Wait(1000)
-    HandleResourceStart()
+    handleResourceStart(resourceName)
 end)
 
-RegisterServerEvent('statusLoad', function()
-    Player(source).state.food = 100
-    Player(source).state.water = 100
+RegisterServerEvent('statusLoad')
+AddEventHandler('statusLoad', function()
+    local player = PlayerState.new(source)
+    player:updateFoodWater()
+    debugPrint({action = "Status Load Event", playerId = source})
 end)
 
-function updateFoodWater()
-    local players = GetPlayers()
-    if playerLoaded == nil then return end
-    for i=1, #players do
-        local playerId = players[i]
-        local plyState = Player(playerId).state
-        local food = plyState.food
-        local water = plyState.water
-        plyState.food = math.max(0, math.min(100, food - Config.FoodDecreaseAmount))
-        plyState.water = math.max(0, math.min(100, water - Config.WaterDecreaseAmount))
-        if Player(playerId).state.food == 0 or Player(playerId).state.water == 0 then
-            TriggerClientEvent('HealthTick', playerId)
-        end
+function updateAllPlayersFoodWater()
+    if not playerLoaded then return end
+    local allPlayers = GetPlayers()
+    for _, playerId in ipairs(allPlayers) do
+        local player = PlayerState.new(tonumber(playerId))
+        player:updateFoodWater()
     end
 end
 
-RegisterServerEvent('ModifyNeeds', function( foodDelta, waterDelta)
-    local food = Player(source).state.food
-    local water = Player(source).state.water
-    local plyState = Player(source).state
-    plyState.food = math.max(0, math.min(100, food + foodDelta ))
-    plyState.water = math.max(0, math.min(100, water + waterDelta ))
- 
+
+RegisterServerEvent('ModifyNeeds')
+AddEventHandler('ModifyNeeds', function(foodDelta, waterDelta)
+    local player = PlayerState.new(source)
+    player:modifyNeeds(foodDelta, waterDelta)
 end)
 
-local function foodWaterLoop()
+Citizen.CreateThread(function()
     while true do
-        Wait(Config.TickRate * 60000)
-        updateFoodWater()
+        Citizen.Wait(1000)
+        updateAllPlayersFoodWater()
     end
-end
-foodWaterLoop()
-
-
-
-
+end)
