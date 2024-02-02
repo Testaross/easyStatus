@@ -1,16 +1,4 @@
 
-local debugMode = true -- Set to false to disable debugging
-
--- Debug function
-local function debugPrint(...)
-    if debugMode then
-        local args = {...}
-        for _, arg in ipairs(args) do
-            print(json.encode(arg, {indent = true})) -- Adjust indent as needed
-        end
-    end
-end
-
 local players = {}
 local playerLoaded = false
 
@@ -29,7 +17,6 @@ function PlayerState.new(playerId)
         water = 100
     }
     players[playerId] = self 
-    debugPrint({action = "New PlayerState Created", playerId = playerId, state = self.state})
     return self
 end
 
@@ -44,49 +31,36 @@ function PlayerState:updateFoodWater()
     })
     if self.state.food == 0 or self.state.water == 0 then
         TriggerClientEvent('HealthTick', self.id)
-        debugPrint({action = "Trigger HealthTick Event", playerId = self.id})
     end
 end
 
 function PlayerState:modifyNeeds(foodDelta, waterDelta)
     self.state.food = math.max(0, math.min(100, self.state.food + foodDelta))
     self.state.water = math.max(0, math.min(100, self.state.water + waterDelta))
-    debugPrint({
-        action = "Modify Needs", 
-        playerId = self.id, 
-        foodDelta = foodDelta, 
-        waterDelta = waterDelta, 
-        oldState = oldState, 
-        newState = self.state
-    })
 end
 
 
-local function handleResourceStart(resourceName)
-    debugPrint({action = "Handling Resource Start", resourceName = resourceName})
-
-    if GetResourceState('ND_Core') == 'started' then
-        debugPrint({message = "ND_Core bridge loaded, thanks for downloading"})
-        playerLoaded = true
+function HandleResourceStart()
+    if  GetResourceState('ND_Core') == 'started' then
+        print("ND_Core bridge loaded, thanks for downloading")
         AddEventHandler("ND:characterLoaded", function(character)
-            debugPrint({message = "ND_Core character loaded", playerLoaded = playerLoaded})
+            playerLoaded = true
         end)
-    elseif GetResourceState('es_extended') == 'started' then
-        debugPrint({message = "es_extended bridge loaded, thanks for downloading"})
-        playerLoaded = true
+    elseif GetResourceState('es_extended') == 'started'then
+        RegisterNetEvent('esx:playerLoaded')
         AddEventHandler('esx:playerLoaded', function()
-            debugPrint({message = "esx player loaded", playerLoaded = playerLoaded})
+            playerLoaded = true
         end)
+        print("ESX bridge loaded, thanks for downloading")
     elseif resourceName == "ox_core" then
-        debugPrint({message = "ox_core detected"})
-        playerLoaded = true
         AddEventHandler('ox:playerLoaded', function(source, userid, charid) 
-            debugPrint({message = "ox_core player loaded", playerLoaded = playerLoaded})
+            playerLoaded = true
         end)
+        print("ox_core bridge loaded, thanks for downloading")
     elseif resourceName == "qb-core" then
-        debugPrint({message = "qb-core detected, no action taken"})
+        return
     else
-        debugPrint({message = 'Custom core detected, add player loaded event'})
+        print('add custom core')
         --add player loaded event
     end
 end
@@ -122,7 +96,7 @@ end)
 
 Citizen.CreateThread(function()
     while true do
-        Citizen.Wait(1000)
+        Wait(Config.TickRate * 60000)
         updateAllPlayersFoodWater()
     end
 end)
