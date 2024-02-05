@@ -1,43 +1,5 @@
-
 local players = {}
-local playerLoaded = false
-
-local PlayerState = {}
-PlayerState.__index = PlayerState
-
-function PlayerState.new(playerId)
-    if players[playerId] then
-        return players[playerId]
-    end
-
-    local self = setmetatable({}, PlayerState)
-    self.id = playerId
-    self.state = {
-        food = 100,
-        water = 100
-    }
-    players[playerId] = self 
-    return self
-end
-
-function PlayerState:updateFoodWater()
-    self.state.food = math.max(0, math.min(100, self.state.food - Config.FoodDecreaseAmount))
-    self.state.water = math.max(0, math.min(100, self.state.water - Config.WaterDecreaseAmount))
-    debugPrint({
-        action = "Update Food & Water", 
-        playerId = self.id, 
-        oldState = oldState, 
-        newState = self.state
-    })
-    if self.state.food == 0 or self.state.water == 0 then
-        TriggerClientEvent('HealthTick', self.id)
-    end
-end
-
-function PlayerState:modifyNeeds(foodDelta, waterDelta)
-    self.state.food = math.max(0, math.min(100, self.state.food + foodDelta))
-    self.state.water = math.max(0, math.min(100, self.state.water + waterDelta))
-end
+local playerLoaded = nil
 
 
 function HandleResourceStart()
@@ -68,35 +30,55 @@ end
 AddEventHandler("onResourceStart", function(resourceName)
     if (GetCurrentResourceName() ~= resourceName) then return end
     Wait(1000)
-    handleResourceStart(resourceName)
+    HandleResourceStart()
+    
 end)
 
-RegisterServerEvent('statusLoad')
-AddEventHandler('statusLoad', function()
-    local player = PlayerState.new(source)
-    player:updateFoodWater()
-    debugPrint({action = "Status Load Event", playerId = source})
+RegisterServerEvent('statusLoad', function()
+    Player(source).state.food = 100
+    Player(source).state.water = 100
+    Player(source).state.needs = {hunger = 100, thirst =  100}
 end)
 
-function updateAllPlayersFoodWater()
-    if not playerLoaded then return end
-    local allPlayers = GetPlayers()
-    for _, playerId in ipairs(allPlayers) do
-        local player = PlayerState.new(tonumber(playerId))
-        player:updateFoodWater()
+function updateFoodWater()
+    local players = GetPlayers()
+    if playerLoaded == nil then return end
+    for i=1, #players do
+        local playerId = players[i]
+        local plyState = Player(playerId).state
+        local food = plyState.food
+        local water = plyState.water
+        plyState.food = math.max(0, math.min(100, food - Config.FoodDecreaseAmount)) or 0
+        plyState.water = math.max(0, math.min(100, water - Config.WaterDecreaseAmount)) or 0
+        plyState.needs = {hunger = plyState.food, thirst =  plyState.water}
+        if Player(playerId).state.food == 0 or Player(playerId).state.water == 0 then
+            TriggerClientEvent('HealthTick', playerId)
+        end
     end
 end
 
-
-RegisterServerEvent('ModifyNeeds')
-AddEventHandler('ModifyNeeds', function(foodDelta, waterDelta)
-    local player = PlayerState.new(source)
-    player:modifyNeeds(foodDelta, waterDelta)
+RegisterServerEvent('ModifyNeeds', function( foodDelta, waterDelta)
+    local food = Player(source).state.food
+    local water = Player(source).state.water
+    local plyState = Player(source).state
+    plyState.food = math.max(0, math.min(100, food + foodDelta ))
+    plyState.water = math.max(0, math.min(100, water + waterDelta ))
+ 
 end)
 
-Citizen.CreateThread(function()
+local function foodWaterLoop()
     while true do
         Wait(Config.TickRate * 60000)
-        updateAllPlayersFoodWater()
+        updateFoodWater()
+       
     end
+end
+foodWaterLoop()
+
+
+
+AddEventHandler("esx:playerLoaded", function(playerId, xPlayer, isNew)
+    Wait(1000)
+    local isDuty = GetDutyState(xPlayer)
+    Player(playerId).state.isJobDuty  = isDuty
 end)
