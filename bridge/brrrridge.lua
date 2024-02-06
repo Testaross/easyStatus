@@ -38,9 +38,11 @@ AddEventHandler('esx_status:getStatus', function(name, cb)
     local food = playerState.needs.hunger
     local water = playerState.need.water
     if name == 'food' or 'hunger' then
+        local amount = food
         cb(food)
 		return 
     elseif name == 'water' or 'thirst' then
+        local amount = water
         cb(water)
 		return 
     else
