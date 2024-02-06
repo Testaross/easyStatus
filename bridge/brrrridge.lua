@@ -1,7 +1,4 @@
-local playerState = LocalPlayer.state
-
-
-
+ local playerState = LocalPlayer.state
 
 --esx
 
@@ -38,25 +35,38 @@ AddEventHandler('esx_status:remove', function(name, val)
 end)
 
 AddEventHandler('esx_status:getStatus', function(name, cb)
+    local food = playerState.needs.hunger
+    local water = playerState.need.water
     if name == 'food' or 'hunger' then
-        local amount = playerState.food
-		return amount
+        cb(food)
+		return 
     elseif name == 'water' or 'thirst' then
-        local amount = playerState.water
-		return amount
+        cb(water)
+		return 
     else
 		--''do wahtever''
     end
 end)
 
 
-
-
 RegisterCommand('check1', function()
-    local food = TriggerEvent('esx_status:getStatus', food)
     TriggerEvent('esx_status:getStatus', 'hunger', function(status)
         if status then 
             print(status) 
         end
     end)
 end, false)
+
+-- AddStateBagChangeHandler('needs', GetPlayerServerId(PlayerPedId()), function(bagName, key, value)
+
+--     -- Print the updated thirst value
+--     print("Updated Thirst: " .. value.thirst)
+--     print("Updated hugner: " .. value.hunger)
+--     -- Send a message to update item.thirst
+
+--     SendNUIMessage({
+--         type = "updateInfo",
+--         thirst = value.thirst,
+--         hunger = value.hunger
+--     })
+-- end)
